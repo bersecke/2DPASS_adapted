@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # encoding: utf-8
-'''
-@author: Xu Yan
-@file: main.py
-@time: 2021/12/7 22:21
-'''
 
 import os, platform
 import yaml

@@ -195,32 +195,32 @@ class LightningBaseModel(pl.LightningModule):
                 final_preds = original_label.astype(np.uint32)
                 final_preds.tofile(full_label_name)
 
-            # else:
-            #     meta_dict = {
-            #         "meta": {
-            #             "use_camera": False,
-            #             "use_lidar": True,
-            #             "use_map": False,
-            #             "use_radar": False,
-            #             "use_external": False,
-            #         }
-            #     }
-            #     os.makedirs(os.path.join(self.submit_dir, 'test'), exist_ok=True)
-            #     with open(os.path.join(self.submit_dir, 'test', 'submission.json'), 'w', encoding='utf-8') as f:
-            #         json.dump(meta_dict, f)
-            #     original_label = prediction.cpu().numpy().astype(np.uint8)
+            else:
+                meta_dict = {
+                    "meta": {
+                        "use_camera": False,
+                        "use_lidar": True,
+                        "use_map": False,
+                        "use_radar": False,
+                        "use_external": False,
+                    }
+                }
+                os.makedirs(os.path.join(self.submit_dir, 'test'), exist_ok=True)
+                with open(os.path.join(self.submit_dir, 'test', 'submission.json'), 'w', encoding='utf-8') as f:
+                    json.dump(meta_dict, f)
+                original_label = prediction.cpu().numpy().astype(np.uint8)
 
-            #     assert all((original_label > 0) & (original_label < 17)), \
-            #         "Error: Array for predictions must be between 1 and 16 (inclusive)."
+                assert all((original_label > 0) & (original_label < 17)), \
+                    "Error: Array for predictions must be between 1 and 16 (inclusive)."
 
-            #     full_save_dir = os.path.join(self.submit_dir, 'lidarseg/test')
-            #     full_label_name = os.path.join(full_save_dir, path + '_lidarseg.bin')
-            #     os.makedirs(full_save_dir, exist_ok=True)
+                full_save_dir = os.path.join(self.submit_dir, 'lidarseg/test')
+                full_label_name = os.path.join(full_save_dir, path + '_lidarseg.bin')
+                os.makedirs(full_save_dir, exist_ok=True)
 
-            #     if os.path.exists(full_label_name):
-            #         print('%s already exsist...' % (full_label_name))
-            #     else:
-            #         original_label.tofile(full_label_name)
+                if os.path.exists(full_label_name):
+                    print('%s already exsist...' % (full_label_name))
+                else:
+                    original_label.tofile(full_label_name)
 
         return data_dict['loss']
 
@@ -268,6 +268,3 @@ class LightningBaseModel(pl.LightningModule):
         if not valid_gradients:
             print(f'detected inf or nan values in gradients. not updating model parameters')
             self.zero_grad()
-
-    # def predict_step(self, batch, batch_idx):
-    #     return self(batch)

@@ -18,14 +18,14 @@ class SparseBasicBlock(spconv.SparseModule):
     def __init__(self, in_channels, out_channels, indice_key):
         super(SparseBasicBlock, self).__init__()
         self.layers_in = spconv.SparseSequential(
-            spconv.SubMConv3d(in_channels, out_channels, 1, indice_key=indice_key, bias=False),
+            spconv.SubMConv3d(in_channels, out_channels, 1, indice_key=indice_key, bias=False, algo=spconv.ConvAlgo.Native),
             nn.BatchNorm1d(out_channels),
         )
         self.layers = spconv.SparseSequential(
-            spconv.SubMConv3d(in_channels, out_channels, 3, indice_key=indice_key, bias=False),
+            spconv.SubMConv3d(in_channels, out_channels, 3, indice_key=indice_key, bias=False, algo=spconv.ConvAlgo.Native),
             nn.BatchNorm1d(out_channels),
             nn.LeakyReLU(0.1),
-            spconv.SubMConv3d(out_channels, out_channels, 3, indice_key=indice_key, bias=False),
+            spconv.SubMConv3d(out_channels, out_channels, 3, indice_key=indice_key, bias=False, algo=spconv.ConvAlgo.Native),
             nn.BatchNorm1d(out_channels),
         )
 
