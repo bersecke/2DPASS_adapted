@@ -8,6 +8,7 @@ import datetime
 import importlib
 import numpy as np
 import pytorch_lightning as pl
+import matplotlib.pyplot as plt
 
 from easydict import EasyDict
 from argparse import ArgumentParser
@@ -40,6 +41,9 @@ def parse_config():
     # general
     parser.add_argument('--gpu', type=int, nargs='+', default=(0,), help='specify gpu devices')
     parser.add_argument('--config_path', default='config/2DPASS-semantickitti.yaml')
+    parser.add_argument('--projected_visualization', action='store_true', default=False, help='visualize predicted \
+        point labels projected onto the images from the captures being inferred on')
+
     # inference
     parser.add_argument('--baseline_only', action='store_true', default=False, help='training without 2D')
     parser.add_argument('--checkpoint', type=str, default=None, help='load checkpoint')
@@ -60,7 +64,6 @@ def build_loader(config):
     pc_dataset = get_pc_model_class(config['dataset_params']['pc_dataset_type'])
     dataset_type = get_model_class(config['dataset_params']['dataset_type'])
     val_config = config['dataset_params']['val_data_loader']
-    test_dataset_loader = None
 
     # For testing
     test_pt_dataset = pc_dataset(config, data_path=val_config['data_path'], imageset='test', num_vote=val_config["batch_size"])
@@ -74,19 +77,6 @@ def build_loader(config):
 
     return test_dataset_loader
 
-# ##############
-# def build_dataset(config):
-#     # Sets up class templates
-#     pc_dataset = get_pc_model_class(config['dataset_params']['pc_dataset_type'])
-#     dataset_type = get_model_class(config['dataset_params']['dataset_type'])
-#     val_config = config['dataset_params']['val_data_loader']
-
-#     test_pt_dataset = pc_dataset(config, data_path=val_config['data_path'], imageset='test', num_vote=val_config["batch_size"])
-#     dataset = dataset_type(test_pt_dataset, config, val_config, num_vote=val_config["batch_size"])
-#     return dataset
-# ##############
-
-
 if __name__ == '__main__':
     # parameters
     configs = parse_config()
@@ -99,30 +89,6 @@ if __name__ == '__main__':
     if platform.system() == "Windows":
         os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "gloo"
 
-    # output path
-    # log_folder = 'logs/' + configs['dataset_params']['pc_dataset_type']
-    # tb_logger = pl_loggers.TensorBoardLogger(log_folder, name=configs.log_dir, default_hp_metric=False)
-    # os.makedirs(f'{log_folder}/{configs.log_dir}', exist_ok=True)
-    # profiler = SimpleProfiler(filename=f'{log_folder}/{configs.log_dir}/profiler.txt') #(output_filename=f'{log_folder}/{configs.log_dir}/profiler.txt')
-    # np.set_printoptions(precision=4, suppress=True)
-
-    # # save the backup files
-    # backup_dir = os.path.join(log_folder, configs.log_dir, 'backup_files_%s' % str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')))
-    # if not configs['test']:
-    #     os.makedirs(backup_dir, exist_ok=True)
-    #     os.system('cp main.py {}'.format(backup_dir))
-    #     os.system('cp dataloader/dataset.py {}'.format(backup_dir))
-    #     os.system('cp dataloader/pc_dataset.py {}'.format(backup_dir))
-    #     os.system('cp {} {}'.format(configs.config_path, backup_dir))
-    #     os.system('cp network/base_model.py {}'.format(backup_dir))
-    #     os.system('cp network/spvcnn.py {}'.format(backup_dir))
-    #     os.system('cp {}.py {}'.format('network/' + configs['model_params']['model_architecture'], backup_dir))
-
-    # # reproducibility
-    # torch.manual_seed(configs.seed)
-    # torch.backends.cudnn.deterministic = True
-    # torch.backends.cudnn.benchmark = True
-    # np.random.seed(configs.seed)
     config_path = configs.config_path
 
     # Creates data loaders for each set of the split dataset
@@ -141,11 +107,38 @@ if __name__ == '__main__':
     print('Start prediction/s...')
     for i, sample in enumerate(iter(test_dataset_loader)):
         my_model.eval()
+
+        indices = sample['indices']
+        origin_len = sample['origin_len']
+        path = sample['path'][0]
+        vote_logits = torch.zeros((len(sample['raw_labels']), 20)) # HARDCODED NUMBER OF CLASSES!
         with torch.no_grad():
-            prediction = my_model(sample)
-        print(f'PREDICTION {i}')
-        print(prediction["logits"]) # logits in shape [number of points (masked), number of classes]
-        input("Press to continue")
+            pred = my_model(sample)
+
+        vote_logits.index_add_(0, indices.cpu(), pred['logits'].cpu())
+
+        pred_labels = vote_logits.argmax(1)
+
+        # IMPROVE HANDLING OF INDIVIDUAL INSTANCES VS BATCHES OF THESE
+        img_reordered = np.array(sample["img"].permute(0, 2, 3, 1)[0]*255).astype(np.int64)
+        img_indices = np.array(sample["img_indices"][0])
+        img_labels = np.expand_dims(np.array(sample["img_label"]), axis=1)
+        pred_labels = np.expand_dims(np.array(pred_labels), axis=1)
+
+        pred_labels_masked = pred_labels[sample["mask"][0]]
+        pred_labels_masked = pred_labels_masked[sample["keep_idx"][0]]
+
+        print(pred_labels_masked.shape)
+
+        if configs.projected_visualization:
+            draw_points_image_labels(
+                img_reordered,
+                img_indices,
+                pred_labels_masked,
+                color_palette_type="SemanticKITTI_long"
+            )
+
+        # input("Press to continue")
 
     import sys
     sys.exit()

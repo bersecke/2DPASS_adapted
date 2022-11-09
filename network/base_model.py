@@ -151,15 +151,15 @@ class LightningBaseModel(pl.LightningModule):
         indices = data_dict['indices']
         origin_len = data_dict['origin_len']
         raw_labels = data_dict['raw_labels'].squeeze(1).cpu()
-        path = data_dict['path'][0]
+        path = data_dict['path'][0].replace("\\", "/")
 
         vote_logits = torch.zeros((len(raw_labels), self.num_classes))
         data_dict = self.forward(data_dict)
         vote_logits.index_add_(0, indices.cpu(), data_dict['logits'].cpu())
 
-        if self.args['dataset_params']['pc_dataset_type'] == 'SemanticKITTI_multiscan':
-            vote_logits = vote_logits[:origin_len]
-            raw_labels = raw_labels[:origin_len]
+        # if self.args['dataset_params']['pc_dataset_type'] == 'SemanticKITTI_multiscan':
+        #     vote_logits = vote_logits[:origin_len]
+        #     raw_labels = raw_labels[:origin_len]
 
         prediction = vote_logits.argmax(1)
 
@@ -177,6 +177,7 @@ class LightningBaseModel(pl.LightningModule):
                 raw_labels.cpu().detach().numpy(),
              )
         else:
+            # Script to export results as .label files
             if self.args['dataset_params']['pc_dataset_type'] != 'nuScenes':
                 components = path.split('/')
                 sequence = components[-3]

@@ -33,6 +33,9 @@ dataset_params:
   label_mapping: "./config/label_mapping/semantic-kitti.yaml"
 
   # 2D augmentation
+  img_dim:
+    - 1242
+    - 512
   bottom_crop: # Works on small crops of the original image dimensions
     - 480
     - 320

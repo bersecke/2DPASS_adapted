@@ -10,6 +10,8 @@ from torchvision import transforms as T
 from pyquaternion import Quaternion
 # from nuscenes.utils.geometry_utils import view_points
 
+from utils.point_limits import point_limits_volumetric_mask, select_points_in_frustum
+
 REGISTERED_DATASET_CLASSES = {}
 REGISTERED_COLATE_CLASSES = {}
 
@@ -78,24 +80,24 @@ class point_image_dataset_semkitti(data.Dataset):
         else:
             return len(self.point_cloud_dataset)
 
-    @staticmethod
-    def select_points_in_frustum(points_2d, x1, y1, x2, y2):
-        """
-        Select points in a 2D frustum parametrized by x1, y1, x2, y2 in image coordinates
-        :param points_2d: point cloud projected into 2D
-        :param points_3d: point cloud
-        :param x1: left bound
-        :param y1: upper bound
-        :param x2: right bound
-        :param y2: lower bound
-        :return: points (2D and 3D) that are in the frustum
-        """
-        keep_ind = (points_2d[:, 0] > x1) * \
-                   (points_2d[:, 1] > y1) * \
-                   (points_2d[:, 0] < x2) * \
-                   (points_2d[:, 1] < y2)
+    # @staticmethod
+    # def select_points_in_frustum(points_2d, x1, y1, x2, y2):
+    #     """
+    #     Select points in a 2D frustum parametrized by x1, y1, x2, y2 in image coordinates
+    #     :param points_2d: point cloud projected into 2D
+    #     :param points_3d: point cloud
+    #     :param x1: left bound
+    #     :param y1: upper bound
+    #     :param x2: right bound
+    #     :param y2: lower bound
+    #     :return: points (2D and 3D) that are in the frustum
+    #     """
+    #     keep_ind = (points_2d[:, 0] > x1) * \
+    #                (points_2d[:, 1] > y1) * \
+    #                (points_2d[:, 0] < x2) * \
+    #                (points_2d[:, 1] < y2)
 
-        return keep_ind
+    #     return keep_ind
 
     def __getitem__(self, index):
         'Generates one sample of data'
@@ -114,10 +116,12 @@ class point_image_dataset_semkitti(data.Dataset):
         ref_index = np.arange(len(ref_pc))
 
         # Delimits area of points to take into account (?)
-        mask_x = np.logical_and(xyz[:, 0] > self.min_volume_space[0], xyz[:, 0] < self.max_volume_space[0])
-        mask_y = np.logical_and(xyz[:, 1] > self.min_volume_space[1], xyz[:, 1] < self.max_volume_space[1])
-        mask_z = np.logical_and(xyz[:, 2] > self.min_volume_space[2], xyz[:, 2] < self.max_volume_space[2])
-        mask = np.logical_and(mask_x, np.logical_and(mask_y, mask_z))
+        mask = point_limits_volumetric_mask(xyz, self.min_volume_space, self.max_volume_space)
+
+        # mask_x = np.logical_and(xyz[:, 0] > self.min_volume_space[0], xyz[:, 0] < self.max_volume_space[0])
+        # mask_y = np.logical_and(xyz[:, 1] > self.min_volume_space[1], xyz[:, 1] < self.max_volume_space[1])
+        # mask_z = np.logical_and(xyz[:, 2] > self.min_volume_space[2], xyz[:, 2] < self.max_volume_space[2])
+        # mask = np.logical_and(mask_x, np.logical_and(mask_y, mask_z))
 
         xyz = xyz[mask]
         ref_pc = ref_pc[mask]
@@ -149,7 +153,7 @@ class point_image_dataset_semkitti(data.Dataset):
         img_points = (proj_matrix @ points_hcoords.T).T
         img_points = img_points[:, :2] / np.expand_dims(img_points[:, 2], axis=1)  # Scale 2D points
         # Keeps points that fit the image
-        keep_idx_img_pts = self.select_points_in_frustum(img_points, 0, 0, *image.size)
+        keep_idx_img_pts = select_points_in_frustum(img_points, 0, 0, *image.size)
         keep_idx[keep_idx] = keep_idx_img_pts
         # fliplr so that indexing is row, col and not col, row
         img_points = np.fliplr(img_points)
@@ -167,14 +171,14 @@ class point_image_dataset_semkitti(data.Dataset):
 
         ### 3D Augmentation ###
         # Random data augmentation by rotation
-        if self.rotate_aug:
+        if self.rotate_aug and self.point_cloud_dataset.imageset != 'test':
             rotate_rad = np.deg2rad(np.random.random() * 360)
             c, s = np.cos(rotate_rad), np.sin(rotate_rad)
             j = np.matrix([[c, s], [-s, c]])
             xyz[:, :2] = np.dot(xyz[:, :2], j)
 
         # Random data augmentation by flip x , y or x+y
-        if self.flip_aug:
+        if self.flip_aug and self.point_cloud_dataset.imageset != 'test':
             flip_type = np.random.choice(4, 1)
             if flip_type == 1:
                 xyz[:, 0] = -xyz[:, 0]
@@ -183,12 +187,12 @@ class point_image_dataset_semkitti(data.Dataset):
             elif flip_type == 3:
                 xyz[:, :2] = -xyz[:, :2]
 
-        if self.scale_aug:
+        if self.scale_aug and self.point_cloud_dataset.imageset != 'test':
             noise_scale = np.random.uniform(0.95, 1.05)
             xyz[:, 0] = noise_scale * xyz[:, 0]
             xyz[:, 1] = noise_scale * xyz[:, 1]
 
-        if self.transform:
+        if self.transform and self.point_cloud_dataset.imageset != 'test':
             noise_translate = np.array([np.random.normal(0, self.trans_std[0], 1),
                                         np.random.normal(0, self.trans_std[1], 1),
                                         np.random.normal(0, self.trans_std[2], 1)]).T
@@ -200,7 +204,7 @@ class point_image_dataset_semkitti(data.Dataset):
         feat = np.concatenate((xyz, sig), axis=1)
 
         ### 2D Augmentation ###
-        if self.bottom_crop:
+        if self.bottom_crop and self.point_cloud_dataset.imageset != 'test':
             # self.bottom_crop is a tuple (crop_width, crop_height)
             left = int(np.random.rand() * (image.size[0] + 1 - self.bottom_crop[0]))
             right = left + self.bottom_crop[0]
@@ -225,19 +229,19 @@ class point_image_dataset_semkitti(data.Dataset):
         img_indices = points_img.astype(np.int64)
 
         # 2D augmentation
-        if self.color_jitter is not None:
+        if self.color_jitter is not None and self.point_cloud_dataset.imageset != 'test':
             image = self.color_jitter(image)
 
         # PIL to numpy
         image = np.array(image, dtype=np.float32, copy=False) / 255.
 
         # 2D augmentation
-        if np.random.rand() < self.flip2d:
+        if np.random.rand() < self.flip2d and self.point_cloud_dataset.imageset != 'test':
             image = np.ascontiguousarray(np.fliplr(image))
             img_indices[:, 1] = image.shape[1] - 1 - img_indices[:, 1]
 
         # Normalize image
-        if self.image_normalizer:
+        if self.image_normalizer and self.point_cloud_dataset.imageset != 'test':
             mean, std = self.image_normalizer
             mean = np.asarray(mean, dtype=np.float32)
             std = np.asarray(std, dtype=np.float32)
@@ -249,7 +253,8 @@ class point_image_dataset_semkitti(data.Dataset):
         data_dict['ref_xyz'] = ref_pc # Only the xyz part of the point cloud info (masked)
         data_dict['ref_label'] = ref_labels # Array of labels in desired numbering format
         data_dict['ref_index'] = ref_index # Array of point indices (masked)
-        data_dict['mask'] = mask # Array of booleans defining the mask
+        data_dict['mask'] = mask # Array of booleans defining the mask¨
+        data_dict['keep_idx'] = keep_idx # Point indexes that appear in the image plane
         data_dict['point_num'] = point_num # Number of points (masked)
         data_dict['origin_len'] = origin_len # Number of points
         data_dict['root'] = root # Path to .bin file
@@ -257,11 +262,13 @@ class point_image_dataset_semkitti(data.Dataset):
         data_dict['img'] = image
         data_dict['img_indices'] = img_indices # u, v positions in image (masked)
         data_dict['img_label'] = img_label # Array of labels per pixel in desired numbering format (masked)
-        data_dict['point2img_index'] = point2img_index # Array indicating the image index for every point (masked)
+        data_dict['point2img_index'] = point2img_index # Array indicating the image index for every labeled point (masked) (limited to positive z)
+
+        data_dict['proj_matrix'] = proj_matrix # Projective matrix for the capture in question
 
         return data_dict
 
-
+# region
 # @register_dataset
 # class point_image_dataset_nus(data.Dataset):
 #     def __init__(self, in_dataset, config, loader_config, num_vote=1, trans_std=[0.1, 0.1, 0.1], max_dropout_ratio=0.2):
@@ -469,7 +476,7 @@ class point_image_dataset_semkitti(data.Dataset):
 #         data_dict['point2img_index'] = point2img_index
 
 #         return data_dict
-
+# endregion
 
 @register_collate_fn
 def collate_fn_default(data):
@@ -492,6 +499,10 @@ def collate_fn_default(data):
     ref_xyz = [torch.from_numpy(d['ref_xyz']) for d in data]
     labels = [torch.from_numpy(d['point_label']) for d in data]
 
+    mask = [d['mask'] for d in data] ####
+    keep_idx = [d['keep_idx'] for d in data] ####
+    proj_matrix = [d['proj_matrix'] for d in data] #### 
+
     return {
         'points': torch.cat(points).float(),
         'ref_xyz': torch.cat(ref_xyz).float(),
@@ -505,5 +516,8 @@ def collate_fn_default(data):
         'img': torch.stack(img, 0).permute(0, 3, 1, 2),
         'img_indices': img_indices,
         'img_label': torch.cat(img_label, 0).squeeze(1).long(),
+        'mask': mask, ####
+        'keep_idx': keep_idx, ####
+        'proj_matrix': proj_matrix, ####
         'path': path,
     }
