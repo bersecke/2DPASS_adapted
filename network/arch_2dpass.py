@@ -10,6 +10,9 @@ from network.base_model import LightningBaseModel
 from network.basic_block import ResNetFCN
 
 class xModalKD(nn.Module):
+    """
+    Fusion of 2D and 3D features
+    """
     def __init__(self,config):
         super(xModalKD, self).__init__()
         self.hiden_size = config['model_params']['hiden_size']

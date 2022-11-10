@@ -128,8 +128,6 @@ if __name__ == '__main__':
         pred_labels_masked = pred_labels[sample["mask"][0]]
         pred_labels_masked = pred_labels_masked[sample["keep_idx"][0]]
 
-        print(pred_labels_masked.shape)
-
         if configs.projected_visualization:
             draw_points_image_labels(
                 img_reordered,
@@ -139,15 +137,4 @@ if __name__ == '__main__':
             )
 
         # input("Press to continue")
-
-    import sys
-    sys.exit()
-
-
-    # VISUALIZATION
-    # draw_points_image_labels(
-    #     np.array(image),
-    #     points_img.astype(int),
-    #     labels[keep_idx],
-    #     color_palette_type='SemanticKITTI_long'
-    # )
+    #################
