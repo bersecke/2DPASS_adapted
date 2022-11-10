@@ -29,21 +29,6 @@ If you find our work useful in your research, please consider citing:
       year={2022},
       booktitle={NeurIPS}
 }
-```
-## News
-* **2022-10-11**  Our new work for cross-modal knowledge distillation is accepted at NeurIPS 2022:smiley: ([here](https://arxiv.org/pdf/2210.04208.pdf)).
-* **2022-09-20** We release codes for SemanticKITTI single-scan and NuScenes :rocket:!
-* **2022-07-03** 2DPASS is accepted at **ECCV 2022** :fire:!
-* **2022-03-08** We achieve **1st** place in both single and multi-scans of [SemanticKITTI](http://semantic-kitti.org/index.html) and **3rd** place on [NuScenes-lidarseg](https://www.nuscenes.org/) :fire:! 
-<p align="center">
-   <img src="figures/singlescan.jpg" width="80%"> 
-</p>
-<p align="center">
-   <img src="figures/multiscan.jpg" width="80%"> 
-</p>
-<p align="center">
-   <img src="figures/nuscene.png" width="80%"> 
-</p>
 
 ## Installation
 
