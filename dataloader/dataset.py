@@ -10,7 +10,7 @@ from torchvision import transforms as T
 from pyquaternion import Quaternion
 # from nuscenes.utils.geometry_utils import view_points
 
-from utils.point_limits import point_limits_volumetric_mask, select_points_in_frustum
+from ..utils.point_limits import point_limits_volumetric_mask, select_points_in_frustum
 
 REGISTERED_DATASET_CLASSES = {}
 REGISTERED_COLATE_CLASSES = {}

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from utils.turbo_cmap import interpolate_or_clip, turbo_colormap_data
+from .turbo_cmap import interpolate_or_clip, turbo_colormap_data
 
 
 # all classes
@@ -131,7 +131,7 @@ def write_obj(points, file, rgb=False):
                 points[i, -1] * 255))
 
 
-def draw_points_image_labels(img, img_indices, seg_labels, show=True, color_palette_type='SemanticKITTI', point_size=3.5):
+def draw_points_image_labels(img, img_indices, seg_labels, show=True, save_dir=None, color_palette_type='SemanticKITTI', point_size=3.5):
     if color_palette_type == 'NuScenes':
         color_palette = NUSCENSE_LIDARSEG_PALETTE
     elif color_palette_type == 'A2D2':
@@ -155,6 +155,9 @@ def draw_points_image_labels(img, img_indices, seg_labels, show=True, color_pale
 
     if show:
         plt.show()
+
+    if save_dir!=None:
+        plt.savefig(save_dir)
 
 
 def normalize_depth(depth, d_min, d_max):

@@ -12,10 +12,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from network.basic_block import Lovasz_loss
-from network.base_model import LightningBaseModel
-from network.basic_block import SparseBasicBlock
-from network.voxel_fea_generator import voxel_3d_generator, voxelization
+from .basic_block import Lovasz_loss
+from .base_model import LightningBaseModel
+from .basic_block import SparseBasicBlock
+from .voxel_fea_generator import voxel_3d_generator, voxelization
 
 
 class point_encoder(nn.Module):

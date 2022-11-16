@@ -16,8 +16,8 @@ from datetime import datetime
 # from pytorch_lightning.metrics import Accuracy
 from torchmetrics import Accuracy
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR, CosineAnnealingLR
-from utils.metric_util import IoU
-from utils.schedulers import cosine_schedule_with_warmup
+from ..utils.metric_util import IoU
+from ..utils.schedulers import cosine_schedule_with_warmup
 
 
 class LightningBaseModel(pl.LightningModule):

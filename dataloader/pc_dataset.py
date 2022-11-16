@@ -61,7 +61,6 @@ class SemanticKITTI(data.Dataset):
 
         # Iterates through sequences in selected split
         for i_folder in split:
-            # Grows capture index - num_vote = x checks x prior cases (?)
             self.im_idx += absoluteFilePaths('/'.join([data_path, str(i_folder).zfill(2), 'velodyne']), num_vote)
             # Reads calibration info
             calib_path = os.path.join(data_path, str(i_folder).zfill(2), "calib.txt").replace("\\","/") # DO BETTER

@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torchvision.models.resnet import resnet34
-from utils.lovasz_loss import lovasz_softmax
+from ..utils.lovasz_loss import lovasz_softmax
 
 
 class SparseBasicBlock(spconv.SparseModule):

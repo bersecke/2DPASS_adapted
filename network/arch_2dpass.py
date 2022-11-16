@@ -4,10 +4,10 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-from network.basic_block import Lovasz_loss
-from network.spvcnn import get_model as SPVCNN
-from network.base_model import LightningBaseModel
-from network.basic_block import ResNetFCN
+from .basic_block import Lovasz_loss
+from .spvcnn import get_model as SPVCNN
+from .base_model import LightningBaseModel
+from .basic_block import ResNetFCN
 
 class xModalKD(nn.Module):
     """
